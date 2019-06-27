@@ -15,6 +15,7 @@ import Control.Monad (unless)
 import Data.Data (Data, Typeable)
 import Data.IORef (newIORef, writeIORef, readIORef)
 
+import Control.Monad.ST
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Identity (IdentityT(..))
 import Control.Monad.Reader (ReaderT(..))
@@ -102,6 +103,7 @@ tests = testGroup "Control.Monad.Catch.Tests" $
   where
     mspecs =
         [ SomeMSpec mspecIO
+        , SomeMSpec mspecST
         , SomeMSpec mspecIdentityTIO
         , SomeMSpec mspecLazyStateTIO
         , SomeMSpec mspecStrictStateTIO
@@ -123,6 +125,9 @@ tests = testGroup "Control.Monad.Catch.Tests" $
 
     mspecIO :: MSpec IO
     mspecIO = MSpec "IO" io
+
+    mspecST :: MSpec (ST RealWorld)
+    mspecST = MSpec "ST RealWorld" (io . stToIO)
 
     mspecIdentityTIO :: MSpec (IdentityT IO)
     mspecIdentityTIO = MSpec "IdentityT IO" $ io . runIdentityT

@@ -4,6 +4,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -86,7 +87,6 @@ import qualified Control.Monad.Trans.State.Lazy as LazyS
 import qualified Control.Monad.Trans.State.Strict as StrictS
 import qualified Control.Monad.Trans.Writer.Lazy as LazyW
 import qualified Control.Monad.Trans.Writer.Strict as StrictW
-import Control.Monad.ST (ST)
 import Control.Monad.ST.Unsafe (unsafeIOToST)
 import Control.Monad.STM (STM)
 import Control.Monad.Trans.List (ListT(..), runListT)
@@ -96,6 +96,8 @@ import Control.Monad.Trans.Except (ExceptT(..), runExceptT)
 import Control.Monad.Trans.Cont (ContT)
 import Control.Monad.Trans.Identity
 import Control.Monad.Reader as Reader
+import GHC.ST (ST(..))
+import GHC.Exts
 
 import Language.Haskell.TH.Syntax (Q)
 
@@ -339,6 +341,12 @@ instance MonadMask IO where
 
 instance MonadThrow (ST s) where
   throwM = unsafeIOToST . ControlException.throwIO
+instance MonadCatch (ST RealWorld) where
+  catch (ST st) handler = ST $ catch# st handler'
+    where handler' e = case fromException e of
+                       Just e' -> case handler e' of
+                                    ST st' -> st'
+                       Nothing -> raiseIO# e
 
 instance MonadThrow STM where
   throwM = STM.throwSTM
